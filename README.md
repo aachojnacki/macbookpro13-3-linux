@@ -16,11 +16,27 @@ Tested on kernel 7.2 (Omarchy 4.0.6), November 2026. Each section says how well 
 > (including speakers) as a result of using anything in this repository. Read each step before running
 > it, and keep a backup. See also the warranty disclaimer in [`LICENSE`](LICENSE).
 
+## Install with an AI agent
+
+Instead of following the steps by hand, you can let an AI coding agent (Claude Code, Codex, Cursor, …)
+do it. [`AGENTS.md`](AGENTS.md) tells it how: inventory the machine, propose only the fixes it needs, ask
+before every root step (you type your own password), back up, verify each fix and give you a rollback
+list. Clone the repo, open the agent in it, and paste:
+
+```text
+Read AGENTS.md and README.md in this repository and help me apply these MacBookPro13,3 fixes to my
+machine. Start with the read-only inventory, then show me a plan of which fixes my machine needs and
+why. Ask before each step that needs root, let me type my own sudo password, back up anything you
+change, verify every fix, and finish with what you did and how to roll it back.
+```
+
+The disclaimer above still applies: read what the agent proposes before you approve it.
+
 | Area | Symptom | Fix | Status |
 |---|---|---|---|
 | [Wi-Fi](#wi-fi-wpa-password-rejected) | WPA2 networks reject a correct password | brcmfmac option | Works |
 | [Touch Bar](#touch-bar) | Touch Bar blank / no function keys | apple-ibridge driver + blacklist | Works |
-| [Keyboard](#fn-keys) | F1–F12 act as media keys | `hid_apple fnmode=2` | Works |
+| [Keyboard](#fn-keys) | F1–F12 act as media keys | `fnmode` of the right driver | External keyboards: works; Touch Bar: untested |
 | [USB-C](#usb-c-hotplug) | USB-C devices not detected when plugged in later | keep TB3 USB controller awake on AC | Works |
 | [Audio](#audio-cs8409) | No speakers/mic, mic breaks with a jack plugged in, playback freezes | snd-hda-macbookpro built with `INTERNAL_MIKE_ONLY`; no always-on echo-cancel | Works |
 | [Black screen](#black-screen-backlight-on) | Backlight on, picture black after an idle lock | rescue key (gmux flip + link retrain) | Works: used almost daily (workaround, cause unknown) |
@@ -75,10 +91,18 @@ sudo mkinitcpio -P    # if hid_sensor_hub is in your initramfs
 
 ## Fn keys
 
-`keyboard/hid_apple.conf` sets `fnmode=2`: F1–F12 are function keys, Fn+F-key gives the media action.
+Which driver owns the keys decides which `fnmode` you need:
+
+- **Built-in keyboard:** `applespi` (SPI). This model has no physical F-keys: they are on the Touch Bar.
+- **Touch Bar F1–F12:** `apple_ib_tb`. Its `fnmode` (default `1`) chooses whether the Touch Bar shows
+  media keys or F-keys by default; check `modinfo -p apple_ib_tb` for the values. Untested here.
+- **External Apple keyboards (USB/Bluetooth):** `hid_apple`. `keyboard/hid_apple.conf` sets `fnmode=2`:
+  F1–F12 are function keys, Fn+F-key gives the media action. It does **not** affect the built-in keyboard
+  or the Touch Bar.
 
 ```bash
-sudo cp keyboard/hid_apple.conf /etc/modprobe.d/
+sudo cp keyboard/hid_apple.conf /etc/modprobe.d/    # external Apple keyboards only
+cat /sys/module/apple_ib_tb/parameters/fnmode       # current Touch Bar mode
 ```
 
 ## USB-C hotplug
