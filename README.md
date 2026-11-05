@@ -23,7 +23,7 @@ Tested on kernel 7.2 (Omarchy 4.0.6), November 2026. Each section says how well 
 | [Keyboard](#fn-keys) | F1–F12 act as media keys | `hid_apple fnmode=2` | Works |
 | [USB-C](#usb-c-hotplug) | USB-C devices not detected when plugged in later | keep TB3 USB controller awake on AC | Works |
 | [Audio](#audio-cs8409) | No speakers/mic, mic breaks with a jack plugged in, playback freezes | snd-hda-macbookpro built with `INTERNAL_MIKE_ONLY`; no always-on echo-cancel | Works |
-| [Black screen](#black-screen-backlight-on) | Backlight on, picture black after idle lock / resume | rescue key (gmux flip + link retrain) | Partial: recovered once |
+| [Black screen](#black-screen-backlight-on) | Backlight on, picture black after an idle lock | rescue key (gmux flip + link retrain) | Works: used almost daily (workaround, cause unknown) |
 | [Suspend](#suspend-s3) | Never resumes from S3 | none yet | Open |
 | [Bluetooth calls](#bluetooth-phone-calls-hfp) | Robotic call audio; WirePlumber killed when a call starts | CVSD instead of mSBC; non-RT data loop | Works |
 
@@ -138,19 +138,22 @@ The backlight is driven by gmux, so "backlight on" says nothing about the GPU. T
 
 1. **After S3 resume:** amdgpu fails to come back (`SMU load firmware failed`,
    `amdgpu_device_ip_resume failed (-22)`). See [Suspend](#suspend-s3).
-2. **After an idle lock (no suspend), occasionally** (~2 in 60 locks here): the picture goes black and
+2. **After an idle lock (no suspend), often** (almost daily here): the picture goes black and
    stays black after unlocking. The compositor is healthy (`grim` captures a correct frame), DPMS is on,
    the eDP link reports trained (DPCD lanes locked, sink in sync), no kernel errors, and a text console
    (`chvt 2`) is black too, so it isn't Hyprland. A DPMS off/on cycle, a forced modeset and an eDP link
    retrain alone did **not** help.
 
-   **What recovered it (once):** switching the panel to the Intel GPU through gmux and back
-   (`vgaswitcheroo` `MIGD` then `MDIS`), then retraining the eDP link, then a DPMS cycle, in that order.
+   **What fixes it:** briefly hand the panel to the Intel GPU and back to the AMD GPU through the gmux
+   display switch (`vgaswitcheroo`: `MIGD`, then `MDIS`), retrain the eDP link, then turn the display
+   off and on (DPMS), in that order. The GPU switch is the key step: the retrain and DPMS cycle alone
+   don't help. In daily use this has recovered the screen every time.
 
 `black-screen/display-rescue` automates this for a blind screen. Bind it to a key that works while the
-session is locked. It saves diagnostics to `~/.local/state/display-rescue/` (the Hyprland log is on
-tmpfs and is lost on the reboot you would otherwise need), opens a focused `sudo` prompt for
-`display-mux-rescue` (type your password blind), then cycles DPMS. Wait about 15 s.
+session is locked. When the screen goes black: press the key, type your password blind (a `sudo`
+prompt has opened with focus, you just can't see it), press Enter, and wait about 15 s.
+Each run also saves diagnostics to `~/.local/state/display-rescue/` (the Hyprland log is on tmpfs and
+would be lost on a reboot).
 
 ```bash
 install -m755 black-screen/display-rescue black-screen/display-mux-rescue ~/.local/bin/
@@ -161,7 +164,7 @@ install -m755 black-screen/display-rescue black-screen/display-mux-rescue ~/.loc
 display-rescue --diag-only   # records state only, safe to try
 ```
 
-Root cause unknown. If you find it, please open an issue.
+This is a reliable workaround, not a fix: the root cause is unknown. If you find it, please open an issue.
 
 ## Suspend (S3)
 

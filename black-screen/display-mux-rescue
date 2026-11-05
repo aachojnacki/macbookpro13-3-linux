@@ -2,7 +2,7 @@
 # MacBookPro13,3: recover "backlight on, black picture" when the eDP link looks healthy.
 # Flips the gmux display switch to the Intel GPU and back to the AMD GPU, then retrains the eDP link.
 # Run as root (needs debugfs). Afterwards run display-rescue (or any DPMS off/on) as your user.
-# Status: recovered the display once in testing; treat as a best-effort rescue, not a fix.
+# Status: recovers the display reliably in daily use (a workaround; root cause unknown).
 set -u
 [[ $EUID -eq 0 ]] || { echo "run with sudo" >&2; exit 1; }
 mountpoint -q /sys/kernel/debug || mount -t debugfs none /sys/kernel/debug
