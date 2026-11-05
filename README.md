@@ -37,6 +37,7 @@ The disclaimer above still applies: read what the agent proposes before you appr
 | [Wi-Fi](#wi-fi-wpa-password-rejected) | WPA2 networks reject a correct password | brcmfmac option | Works |
 | [Touch Bar](#touch-bar) | Touch Bar blank / no function keys | apple-ibridge driver + blacklist | Works |
 | [Keyboard](#fn-keys) | F1–F12 act as media keys | `fnmode` of the right driver | External keyboards: works; Touch Bar: untested |
+| [Touchpad](#touchpad-palm-rejection-and-scrolling) | Palm on the trackpad moves the cursor / clicks / drags while typing; scroll direction | stricter libinput palm size + no tap-and-drag; natural scroll | Works: much better in daily use |
 | [USB-C](#usb-c-hotplug) | USB-C devices not detected when plugged in later | keep TB3 USB controller awake on AC | Works |
 | [Audio](#audio-cs8409) | No speakers/mic, mic breaks with a jack plugged in, playback freezes | snd-hda-macbookpro built with `INTERNAL_MIKE_ONLY`; no always-on echo-cancel | Works |
 | [Black screen](#black-screen-backlight-on) | Backlight on, picture black after an idle lock | rescue key (gmux flip + link retrain) | Works: used almost daily (workaround, cause unknown) |
@@ -113,6 +114,40 @@ sudo mkinitcpio -P
 sudo cp keyboard/hid_apple.conf /etc/modprobe.d/    # external Apple keyboards only
 cat /sys/module/apple_ib_tb/parameters/fnmode       # current Touch Bar mode
 ```
+
+## Touchpad: palm rejection and scrolling
+
+Typing on the built-in keyboard, the palms rest on the huge trackpad. libinput already ignores touches
+while you type ("disable while typing") and contacts larger than a palm threshold, but gaps remain:
+
+- typing protection ends **~0.2–0.5 s after the last key**, so a palm that lands during a pause counts;
+- **modifier keys (Super, Ctrl…) don't count as typing**, by design, so Super + a stray touch can drag
+  a window;
+- libinput's built-in palm size threshold for the applespi touchpad (`1600`) lets partial palms through;
+- with tap-and-drag on, a palm brush right after a pause can start a drag.
+
+Fixes (tap-to-click stays on):
+
+1. **Stricter palm size** — `touchpad/local-overrides.quirks` lowers the threshold to `1000`, the value
+   other Apple SPI users type cleanly with ([omarchy-trackpad-plus](https://github.com/davefano/omarchy-trackpad-plus/pull/15);
+   [roadrunner2](https://gist.github.com/roadrunner2/1289542a748d9a104e7baec6a92f9cd7) used `1100`).
+   If firm-press drags start getting dropped, raise it (e.g. `1200`).
+2. **No tap-and-drag** — to drag, keep the trackpad physically pressed while moving.
+3. **Natural scroll** — macOS-style scroll direction (preference, included for convenience).
+
+```bash
+sudo install -Dm644 touchpad/local-overrides.quirks /etc/libinput/local-overrides.quirks
+# Hyprland Lua config: merge touchpad/hyprland-touchpad.lua into ~/.config/hypr/input.lua
+# classic hyprland.conf: merge touchpad/hyprland-touchpad.conf into your input { } block
+hyprctl reload
+```
+
+libinput reads quirks only when the compositor starts: **log out and back in** (no reboot needed). If
+`/etc/libinput/local-overrides.quirks` already exists, append the section instead of replacing the file.
+To check it's active, the Hyprland log shows `palm detected (touch size)` lines for event touches.
+
+If accidents still get through, especially with Super held, the remaining gap is the short typing
+timeout, which libinput doesn't make configurable.
 
 ## USB-C hotplug
 

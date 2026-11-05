@@ -58,6 +58,7 @@ fix, reason, files touched, whether root is needed. Wait for their go-ahead.
 | Touch Bar | `lsusb` shows `05ac:8600 iBridge` and `apple_ib_tb` is not loaded | Yes: needs building a driver |
 | Keyboard at boot | disk is encrypted and no `applespi` in the mkinitcpio config | Yes |
 | Fn keys (external Apple keyboard) | the user uses an external Apple keyboard | Yes: it's a preference |
+| Touchpad palm + scroll | `Apple SPI Touchpad` present (applespi); user reports palm touches while typing, or wants natural scroll | Ask about scroll direction and whether they use tap-to-click (keep it on unless they say otherwise) |
 | USB-C hotplug | `lspci -d 8086:15d4` lists the JHL6540 controller(s) | Ask whether late-plugged USB-C devices go undetected |
 | Audio | codec `CS8409` present and the speakers/mic don't work, or `snd-hda-macbookpro` already installed | Yes: driver build; also ask whether they use the 3.5 mm jack |
 | Black-screen rescue | `apple_gmux` loaded and Hyprland in use | Ask whether they get "backlight on, black screen" |
@@ -103,6 +104,17 @@ that fix, show the output, and offer to roll it back before going on.
 - Install `keyboard/hid_apple.conf` → `/etc/modprobe.d/`. Verify after replug/reboot:
   `cat /sys/module/hid_apple/parameters/fnmode` → `2`. It does not affect the built-in keyboard or
   Touch Bar.
+
+### Touchpad: palm rejection and scrolling
+- Quirk: if `/etc/libinput/local-overrides.quirks` exists, show it and **append** the section from
+  `touchpad/local-overrides.quirks` (back up first); otherwise
+  `sudo install -Dm644 touchpad/local-overrides.quirks /etc/libinput/local-overrides.quirks`.
+- Hyprland: merge `natural_scroll = true` (only if the user wants it) and `tap_and_drag = false`
+  (`tap-and-drag = false` in classic config) into the existing touchpad block. Don't add a second
+  `input` block. `hyprctl reload`, check `hyprctl configerrors` is empty, then
+  `hyprctl getoption input:touchpad:tap-and-drag` → `false`.
+- Tell the user to **log out and back in** (quirks load at compositor start). Afterwards they test normal
+  typing and a firm-press drag; if drags get dropped, raise the threshold to 1200.
 
 ### USB-C hotplug
 - Install `usb-c/tb-usb-power` → `/usr/local/bin/` (mode 755), `usb-c/90-tb-usb-power.rules` →
