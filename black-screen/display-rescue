@@ -1,0 +1,46 @@
+#!/bin/bash
+# Blind rescue for "backlight on, black screen" on a MacBookPro13,3 running Hyprland.
+# Bind it to a key that works while locked, e.g. in Hyprland Lua config:
+#   o.bind("SUPER + CTRL + ALT + P", "Rescue black display", "/path/to/display-rescue", { locked = true })
+# Saves evidence first (the Hyprland log lives in /run and is lost on reboot), opens a focused
+# sudo prompt for display-mux-rescue (type the password blind), then power-cycles the display (DPMS).
+# --diag-only only records state.
+here=$(dirname "$(readlink -f "$0")")
+dir="${XDG_STATE_HOME:-$HOME/.local/state}/display-rescue"
+mkdir -p "$dir" && chmod 700 "$dir"
+log="$dir/$(date +%Y-%m-%d_%H-%M-%S).log"
+card=$(basename "$(dirname "$(ls -d /sys/class/drm/card*-eDP-1 | head -1)")" 2>/dev/null)
+
+snapshot() {
+  echo "=================== $1 — $(date --iso-8601=seconds)"
+  echo '--- hyprctl monitors all'; timeout 3 hyprctl monitors all || echo "hyprctl failed rc=$?"
+  echo '--- connector / gpu / backlight'
+  for f in /sys/class/drm/card*-eDP-1/{status,enabled,dpms}; do echo "$f: $(cat "$f" 2>&1)"; done
+  for c in /sys/class/drm/card[0-9]; do echo "$c power_state: $(cat "$c/device/power_state" 2>&1)"; done
+  echo "backlight: $(cat /sys/class/backlight/gmux_backlight/brightness 2>&1) / $(cat /sys/class/backlight/gmux_backlight/max_brightness 2>&1)"
+  echo '--- compositor processes'; pgrep -a 'Hyprland|hyprlock|quickshell|waybar' | cut -c1-160
+  echo '--- kernel: display/gpu lines, last 40'
+  timeout 5 journalctl -k -b --no-pager -o short-precise | grep -Ei 'amdgpu|drm|gmux|flip|vblank' | tail -40
+}
+
+{ snapshot before
+  echo '--- hyprland.log, last 500 lines'
+  newest=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}"/hypr/*/hyprland.log 2>/dev/null | head -1)
+  [[ -n $newest ]] && tail -500 "$newest"
+} >"$log" 2>&1
+[[ ${1:-} == --diag-only ]] && { echo "$log"; exit 0; }
+
+# Ctrl+C or two minutes without a password skips the GPU switch; the DPMS cycle still runs.
+if command -v foot >/dev/null; then t=(foot --title=display-mux-rescue)
+elif command -v alacritty >/dev/null; then t=(alacritty --title display-mux-rescue -e)
+elif command -v kitty >/dev/null; then t=(kitty --title display-mux-rescue); fi
+[[ -n ${t:-} ]] && timeout 120 "${t[@]}" sudo "$here/display-mux-rescue" >>"$log" 2>&1
+
+dpms() {  # Hyprland with Lua config (Omarchy 4) uses hl.dsp.dpms; classic hyprland.conf uses "dpms on|off"
+  timeout 3 hyprctl dispatch "hl.dsp.dpms({ action = \"$1\" })" 2>&1 | grep -q ok ||
+    timeout 3 hyprctl dispatch dpms "${2}" 2>&1
+}
+dpms disable off >>"$log" 2>&1; sleep 2
+dpms enable on >>"$log" 2>&1; sleep 3
+snapshot after >>"$log" 2>&1
+echo "$log"

@@ -1,0 +1,23 @@
+#!/bin/bash
+# Keep the MacBook's Thunderbolt 3 USB controllers (USB-C ports) awake on AC power
+# so hotplugged USB-C devices are detected; let them power-save on battery.
+#
+# Usage: tb-usb-power          # auto: on when AC is connected, power-save on battery
+#        tb-usb-power on       # force awake (e.g. on battery, before plugging something in)
+#        tb-usb-power auto     # force power-saving
+
+mode="${1:-}"
+if [[ -z $mode ]]; then
+  if [[ $(cat /sys/class/power_supply/ADP1/online 2>/dev/null) == 1 ]]; then
+    mode=on
+  else
+    mode=auto
+  fi
+fi
+
+# Intel JHL6540 Thunderbolt 3 USB Controller (Alpine Ridge)
+for dev in /sys/bus/pci/devices/*; do
+  if [[ $(cat "$dev/vendor") == 0x8086 && $(cat "$dev/device") == 0x15d4 ]]; then
+    echo "$mode" > "$dev/power/control"
+  fi
+done
