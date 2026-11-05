@@ -10,6 +10,12 @@ Most of this also applies to other Arch-based distributions, and parts of it to 
 
 Tested on kernel 7.2 (Omarchy 4.0.6), November 2026. Each section says how well it is proven.
 
+> **Disclaimer — use at your own risk.** These are notes and scripts from one person's machine, not a
+> supported product. They change kernel modules, drivers, udev rules and audio settings, and some steps
+> run as root. I take no responsibility for anything that happens to your computer, data or hardware
+> (including speakers) as a result of using anything in this repository. Read each step before running
+> it, and keep a backup. See also the warranty disclaimer in [`LICENSE`](LICENSE).
+
 | Area | Symptom | Fix | Status |
 |---|---|---|---|
 | [Wi-Fi](#wi-fi-wpa-password-rejected) | WPA2 networks reject a correct password | brcmfmac option | Works |
