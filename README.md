@@ -144,7 +144,7 @@ hyprctl reload
 
 libinput reads quirks only when the compositor starts: **log out and back in** (no reboot needed). If
 `/etc/libinput/local-overrides.quirks` already exists, append the section instead of replacing the file.
-To check it's active, the Hyprland log shows `palm detected (touch size)` lines for event touches.
+To check it's active, the Hyprland log shows `palm: ... palm detected (touch size)` lines for the touchpad.
 
 If accidents still get through, especially with Super held, the remaining gap is the short typing
 timeout, which libinput doesn't make configurable.
