@@ -18,7 +18,8 @@ Tested on kernel 7.2 (Omarchy 4.0.6), November 2026. Each section says how well 
 
 ## Install with an AI agent
 
-Instead of following the steps by hand, you can let an AI coding agent (Claude Code, Codex, Cursor, …)
+Clone with submodules (`git clone --recurse-submodules https://github.com/aachojnacki/macbookpro13-3-linux`;
+in an existing clone run `git submodule update --init`). Instead of following the steps by hand, you can let an AI coding agent (Claude Code, Codex, Cursor, …)
 do it. [`AGENTS.md`](AGENTS.md) tells it how: inventory the machine, propose only the fixes it needs, ask
 before every root step (you type your own password), back up, verify each fix and give you a rollback
 list. Clone the repo, open the agent in it, and paste:
@@ -117,37 +118,20 @@ cat /sys/module/apple_ib_tb/parameters/fnmode       # current Touch Bar mode
 
 ## Touchpad: palm rejection and scrolling
 
-Typing on the built-in keyboard, the palms rest on the huge trackpad. libinput already ignores touches
-while you type ("disable while typing") and contacts larger than a palm threshold, but gaps remain:
-
-- typing protection ends **~0.2–0.5 s after the last key**, so a palm that lands during a pause counts;
-- **modifier keys (Super, Ctrl…) don't count as typing**, by design, so Super + a stray touch can drag
-  a window;
-- libinput's built-in palm size threshold for the applespi touchpad (`1600`) lets partial palms through;
-- with tap-and-drag on, a palm brush right after a pause can start a drag.
-
-Fixes (tap-to-click stays on):
-
-1. **Stricter palm size** — `touchpad/local-overrides.quirks` lowers the threshold to `1000`, the value
-   other Apple SPI users type cleanly with ([omarchy-trackpad-plus](https://github.com/davefano/omarchy-trackpad-plus/pull/15);
-   [roadrunner2](https://gist.github.com/roadrunner2/1289542a748d9a104e7baec6a92f9cd7) used `1100`).
-   If firm-press drags start getting dropped, raise it (e.g. `1200`).
-2. **No tap-and-drag** — to drag, keep the trackpad physically pressed while moving.
-3. **Natural scroll** — macOS-style scroll direction (preference, included for convenience).
+Palms resting on the big trackpad while typing on the built-in keyboard move the cursor, click, or
+drag (with Super held: move windows). The fix lives in its own repository, because it applies to any
+laptop: **[linux-touchpad-palm-rejection](https://github.com/aachojnacki/linux-touchpad-palm-rejection)**,
+included here as the `touchpad/` submodule. For this model:
 
 ```bash
-sudo install -Dm644 touchpad/local-overrides.quirks /etc/libinput/local-overrides.quirks
-# Hyprland Lua config: merge touchpad/hyprland-touchpad.lua into ~/.config/hypr/input.lua
-# classic hyprland.conf: merge touchpad/hyprland-touchpad.conf into your input { } block
-hyprctl reload
+cat touchpad/quirks/apple-spi-macbook-2016-2017.quirks | sudo tee -a /etc/libinput/local-overrides.quirks
+# Hyprland: merge touchpad/compositor/hyprland.lua (Lua config) or hyprland.conf (classic) into your input settings
+hyprctl reload    # then log out and back in so libinput reads the quirk
 ```
 
-libinput reads quirks only when the compositor starts: **log out and back in** (no reboot needed). If
-`/etc/libinput/local-overrides.quirks` already exists, append the section instead of replacing the file.
-To check it's active, the Hyprland log shows `palm: ... palm detected (touch size)` lines for the touchpad.
-
-If accidents still get through, especially with Super held, the remaining gap is the short typing
-timeout, which libinput doesn't make configurable.
+It lowers libinput's palm size threshold for the applespi touchpad (1600 → 1000), turns tap-and-drag
+off (tap-to-click stays on) and optionally sets natural scrolling. See that repository's README for the
+details, checks and tuning.
 
 ## USB-C hotplug
 

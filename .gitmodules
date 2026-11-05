@@ -1,0 +1,3 @@
+[submodule "touchpad"]
+	path = touchpad
+	url = https://github.com/aachojnacki/linux-touchpad-palm-rejection

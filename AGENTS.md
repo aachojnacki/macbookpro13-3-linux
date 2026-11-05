@@ -25,6 +25,8 @@ fixes in this repository to their machine. The human-readable explanation of eve
 
 ## Phase 1 — Inventory (read-only, no confirmation needed)
 
+If `touchpad/` is empty, run `git submodule update --init` (the touchpad fix is a submodule).
+
 Run and record:
 
 ```bash
@@ -106,15 +108,10 @@ that fix, show the output, and offer to roll it back before going on.
   Touch Bar.
 
 ### Touchpad: palm rejection and scrolling
-- Quirk: if `/etc/libinput/local-overrides.quirks` exists, show it and **append** the section from
-  `touchpad/local-overrides.quirks` (back up first); otherwise
-  `sudo install -Dm644 touchpad/local-overrides.quirks /etc/libinput/local-overrides.quirks`.
-- Hyprland: merge `natural_scroll = true` (only if the user wants it) and `tap_and_drag = false`
-  (`tap-and-drag = false` in classic config) into the existing touchpad block. Don't add a second
-  `input` block. `hyprctl reload`, check `hyprctl configerrors` is empty, then
-  `hyprctl getoption input:touchpad:tap-and-drag` → `false`.
-- Tell the user to **log out and back in** (quirks load at compositor start). Afterwards they test normal
-  typing and a firm-press drag; if drags get dropped, raise the threshold to 1200.
+- This fix lives in the `touchpad/` git submodule. If `touchpad/` is empty, run
+  `git submodule update --init` first.
+- Follow `touchpad/AGENTS.md` (it covers inventory, the quirk, compositor settings, re-login and
+  verification). On this model use `touchpad/quirks/apple-spi-macbook-2016-2017.quirks`.
 
 ### USB-C hotplug
 - Install `usb-c/tb-usb-power` → `/usr/local/bin/` (mode 755), `usb-c/90-tb-usb-power.rules` →

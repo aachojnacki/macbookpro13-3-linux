@@ -1,8 +1,0 @@
-# Stricter palm rejection for the MacBook (2016/2017) SPI touchpad, applespi driver.
-# Stock libinput value is 1600; lower = more contacts count as palms. 1000 is what other Apple SPI
-# users type cleanly with. If drags/clicks start getting dropped, raise it (e.g. 1200).
-[Apple Laptop Touchpad (SPI) applespi driver - stricter palm]
-MatchUdevType=touchpad
-MatchBus=spi
-MatchVendor=0x06CB
-AttrPalmSizeThreshold=1000
