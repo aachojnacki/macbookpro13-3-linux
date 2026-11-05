@@ -56,6 +56,7 @@ fix, reason, files touched, whether root is needed. Wait for their go-ahead.
 |---|---|---|
 | Wi-Fi | `brcmfmac` loaded with BCM43602 `[14e4:43ba]`, and no `feature_disable` already in `modprobe -c \| grep brcmfmac` | Ask whether WPA networks reject correct passwords; skip if Wi-Fi works fine |
 | Touch Bar | `lsusb` shows `05ac:8600 iBridge` and `apple_ib_tb` is not loaded | Yes: needs building a driver |
+| Keyboard at boot | disk is encrypted and no `applespi` in the mkinitcpio config | Yes |
 | Fn keys (external Apple keyboard) | the user uses an external Apple keyboard | Yes: it's a preference |
 | USB-C hotplug | `lspci -d 8086:15d4` lists the JHL6540 controller(s) | Ask whether late-plugged USB-C devices go undetected |
 | Audio | codec `CS8409` present and the speakers/mic don't work, or `snd-hda-macbookpro` already installed | Yes: driver build; also ask whether they use the 3.5 mm jack |
@@ -85,11 +86,18 @@ that fix, show the output, and offer to roll it back before going on.
 - If the patch doesn't apply or the build fails on a newer kernel, stop and show the compiler errors. Do
   not improvise kernel code changes without telling the user exactly what you changed.
 - Install `touchbar/apple-ibridge.conf` → `/etc/modprobe.d/`, and
-  `touchbar/modules-load-apple-ibridge.conf` → `/etc/modules-load.d/apple-ibridge.conf`. Rebuild the
-  initramfs (`sudo mkinitcpio -P`) only if your initramfs config pulls in `hid_sensor_hub`
-  (`grep -E 'hid.sensor' /etc/mkinitcpio.conf /etc/mkinitcpio.conf.d/* 2>/dev/null`).
+  `touchbar/modules-load-apple-ibridge.conf` → `/etc/modules-load.d/apple-ibridge.conf`. Also install
+  `touchbar/mkinitcpio-apple_ibridge.conf` → `/etc/mkinitcpio.conf.d/apple_ibridge.conf` (loads the
+  driver early so it wins the iBridge over `hid_sensor_hub`) and run `sudo mkinitcpio -P`. On other
+  initramfs tools (dracut, booster) translate it and say so.
 - Verify after a reboot (ask first): `lsmod | grep apple_ib_tb`, `lsmod | grep hid_sensor_hub` is empty,
   and the user sees keys on the Touch Bar.
+
+### Keyboard at boot (encrypted disk)
+- Only if the disk is encrypted and `grep -rs applespi /etc/mkinitcpio.conf /etc/mkinitcpio.conf.d/`
+  finds nothing (Omarchy already has it): install `keyboard/mkinitcpio-macbook_spi_modules.conf` →
+  `/etc/mkinitcpio.conf.d/macbook_spi_modules.conf`, `sudo mkinitcpio -P`. **Ask first**, and make sure
+  the user has another way to unlock if the next boot's keyboard doesn't work (external USB keyboard).
 
 ### Fn keys (external Apple keyboard)
 - Install `keyboard/hid_apple.conf` → `/etc/modprobe.d/`. Verify after replug/reboot:

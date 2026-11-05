@@ -86,7 +86,8 @@ handles), and load the Touch Bar module at boot:
 ```bash
 sudo cp touchbar/apple-ibridge.conf /etc/modprobe.d/
 sudo cp touchbar/modules-load-apple-ibridge.conf /etc/modules-load.d/apple-ibridge.conf
-sudo mkinitcpio -P    # if hid_sensor_hub is in your initramfs
+sudo cp touchbar/mkinitcpio-apple_ibridge.conf /etc/mkinitcpio.conf.d/apple_ibridge.conf  # load it early, before hid-sensor-hub
+sudo mkinitcpio -P
 ```
 
 ## Fn keys
@@ -99,6 +100,14 @@ Which driver owns the keys decides which `fnmode` you need:
 - **External Apple keyboards (USB/Bluetooth):** `hid_apple`. `keyboard/hid_apple.conf` sets `fnmode=2`:
   F1–F12 are function keys, Fn+F-key gives the media action. It does **not** affect the built-in keyboard
   or the Touch Bar.
+
+**Keyboard at the disk-encryption prompt:** the built-in keyboard only works there if the SPI modules
+are in the initramfs. Omarchy does this for you; on plain Arch:
+
+```bash
+sudo cp keyboard/mkinitcpio-macbook_spi_modules.conf /etc/mkinitcpio.conf.d/macbook_spi_modules.conf
+sudo mkinitcpio -P
+```
 
 ```bash
 sudo cp keyboard/hid_apple.conf /etc/modprobe.d/    # external Apple keyboards only
